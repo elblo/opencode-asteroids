@@ -29,6 +29,20 @@ Luego visita `http://localhost:3000`.
 | `←` `→`   | Rotar nave |
 | `↑`       | Propulsar  |
 | `Espacio` | Disparar   |
+| `S`       | Cambiar skin |
+
+## Skins
+
+La nave tiene cuatro apariencias cosméticas. Se cambian en cualquier momento con `S`, también durante la muerte o el game over, y no afectan al tamaño de la nave ni a las colisiones.
+
+| Skin | Aspecto |
+| --- | --- |
+| Clásica | Triángulo blanco original |
+| Interceptor | Delta cian con cabina y aletas |
+| Lanzadera | Casco ámbar con toberas |
+| Espectro | Silueta violeta de cola bifurcada |
+
+La skin elegida se guarda en el navegador con `localStorage` cuando está disponible. Si no hay almacenamiento (por ejemplo, en modo privado), el cambio funciona igual durante la sesión.
 
 ## Puntuación
 
@@ -58,3 +72,4 @@ Se recogen al chocar con ellos, y el HUD muestra la cuenta atrás mientras el ef
 - Partículas de explosión al destruir asteroides
 - Power-ups que sueltan los asteroides al morir
 - Estrellas fugaces: rápidas, con caducidad y estela
+- Cuatro skins para la nave, con selección con `S` y persistencia local

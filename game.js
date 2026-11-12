@@ -96,6 +96,108 @@ const SHOOTING_STAR = {
   warn:       2,     // s de aviso en el HUD
 };
 
+// Skins de la nave: puramente cosméticas. `hull` es el contorno y `details`
+// son líneas interiores; todo se dibuja en coordenadas locales con la nariz
+// hacia +x. Las siluetas no superan el tamaño de la nave original para que el
+// aspecto siga coincidiendo con el hitbox y el punto de disparo. `flameX` es
+// el punto de salida de la llama.
+const SKINS = [
+  {
+    id:     'clasica',
+    name:   'Clásica',
+    color:  '#fff',
+    flame:  'rgba(255, 130, 0, 0.85)',
+    flameX: -8,
+    hull: [
+      [20, 0], [-12, -9], [-7, 0], [-12, 9],
+    ],
+    details: [],
+  },
+  {
+    id:     'interceptor',
+    name:   'Interceptor',
+    color:  '#7cf7ff',
+    flame:  'rgba(80, 220, 255, 0.85)',
+    flameX: -15,
+    hull: [
+      [21, 0], [2, -4], [0, -12], [-6, -6], [-12, -10],
+      [-8, -2], [-15, 0], [-8, 2], [-12, 10], [-6, 6],
+      [0, 12], [2, 4],
+    ],
+    details: [
+      [[6, -3], [10, 0], [6, 3]],
+    ],
+  },
+  {
+    id:     'lanzadera',
+    name:   'Lanzadera',
+    color:  '#ffd166',
+    flame:  'rgba(255, 170, 60, 0.9)',
+    flameX: -14,
+    hull: [
+      [20, 0], [14, -7], [-6, -8], [-12, -9], [-14, -4],
+      [-14, 4], [-12, 9], [-6, 8], [14, 7],
+    ],
+    details: [
+      [[8, -3], [12, 0], [8, 3]],
+      [[-7, -6], [-7, 6]],
+    ],
+  },
+  {
+    id:     'espectro',
+    name:   'Espectro',
+    color:  '#c792ff',
+    flame:  'rgba(190, 110, 255, 0.9)',
+    flameX: -14,
+    hull: [
+      [21, 0], [0, -5], [-9, -12], [-5, -4],
+      [-14, 0], [-5, 4], [-9, 12], [0, 5],
+    ],
+    details: [
+      [[7, -3], [11, 0], [7, 3]],
+    ],
+  },
+];
+
+const SKIN_KEY = 'asteroids.skin';
+
+function loadSkin() {
+  try {
+    const saved = localStorage.getItem(SKIN_KEY);
+    const i = SKINS.findIndex(s => s.id === saved);
+    return i >= 0 ? i : 0;
+  } catch {
+    return 0;   // almacenamiento bloqueado: se juega con la skin por defecto
+  }
+}
+
+function saveSkin() {
+  try {
+    localStorage.setItem(SKIN_KEY, SKINS[skinIndex].id);
+  } catch {
+    // Sin persistencia disponible; el cambio sigue funcionando en esta sesión.
+  }
+}
+
+// Dibuja el contorno y los detalles de una skin. El llamador fija color y grosor.
+function traceSkin(skin, scale = 1) {
+  const hull = skin.hull;
+  ctx.beginPath();
+  ctx.moveTo(hull[0][0] * scale, hull[0][1] * scale);
+  for (let i = 1; i < hull.length; i++)
+    ctx.lineTo(hull[i][0] * scale, hull[i][1] * scale);
+  ctx.closePath();
+  ctx.stroke();
+
+  for (const line of skin.details) {
+    ctx.beginPath();
+    ctx.moveTo(line[0][0] * scale, line[0][1] * scale);
+    for (let i = 1; i < line.length; i++)
+      ctx.lineTo(line[i][0] * scale, line[i][1] * scale);
+    ctx.stroke();
+  }
+}
+
 class Asteroid {
   constructor(x, y, size = 3) {
     this.x    = x;
@@ -292,29 +394,25 @@ class Ship {
     // Parpadeo durante invencibilidad de reaparición
     if (this.invincible > 0 && Math.floor(this.invincible * 8) % 2 === 0) return;
 
+    const skin = SKINS[skinIndex];
+
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.angle);
-    ctx.strokeStyle = '#fff';
+    ctx.strokeStyle = skin.color;
     ctx.lineWidth   = 1.5;
     ctx.lineJoin    = 'round';
 
-    // Silueta clásica: triángulo con muesca trasera
-    ctx.beginPath();
-    ctx.moveTo( 20,  0);   // nariz
-    ctx.lineTo(-12, -9);   // ala izquierda
-    ctx.lineTo( -7,  0);   // muesca trasera
-    ctx.lineTo(-12,  9);   // ala derecha
-    ctx.closePath();
-    ctx.stroke();
+    traceSkin(skin);
 
     // Llama del propulsor
     if (this.thrusting && Math.random() > 0.35) {
+      const fx = skin.flameX;
       ctx.beginPath();
-      ctx.moveTo(-8, -4);
-      ctx.lineTo(-8 - rand(6, 14), 0);
-      ctx.lineTo(-8,  4);
-      ctx.strokeStyle = 'rgba(255, 130, 0, 0.85)';
+      ctx.moveTo(fx, -4);
+      ctx.lineTo(fx - rand(6, 14), 0);
+      ctx.lineTo(fx,  4);
+      ctx.strokeStyle = skin.flame;
       ctx.stroke();
     }
 
@@ -436,6 +534,8 @@ let state;      // 'playing' | 'dead' | 'gameover'
 let deadTimer;
 let starTimer;  // cuenta atrás hasta la próxima estrella fugaz
 let starWarn;   // s restantes del aviso en el HUD
+let skinIndex = loadSkin();   // skin activa (índice en SKINS)
+let skinToast = 0;            // s de resaltado de la etiqueta tras cambiarla
 
 function spawnAsteroids(count) {
   const SAFE_DIST = 130;
@@ -523,6 +623,15 @@ function killShip() {
 
 // ── Update ────────────────────────────────────────────────────────────────────
 function update(dt) {
+  // El cambio de skin está fuera de las ramas de estado para que funcione
+  // también durante la muerte y el game over.
+  if (skinToast > 0) skinToast -= dt;
+  if (pressed('KeyS')) {
+    skinIndex = (skinIndex + 1) % SKINS.length;
+    skinToast = 1.5;
+    saveSkin();
+  }
+
   if (state === 'gameover') {
     if (pressed('Space')) initGame();
     particles.forEach(p => p.update(dt));
@@ -614,13 +723,8 @@ function drawLifeIcon(x, y) {
   ctx.strokeStyle = '#fff';
   ctx.lineWidth   = 1.2;
   ctx.lineJoin    = 'round';
-  ctx.beginPath();
-  ctx.moveTo( 9,  0);
-  ctx.lineTo(-6, -5);
-  ctx.lineTo(-3,  0);
-  ctx.lineTo(-6,  5);
-  ctx.closePath();
-  ctx.stroke();
+  // La silueta actual, reducida, para que las vidas reflejen la skin elegida.
+  traceSkin(SKINS[skinIndex], 0.5);
   ctx.restore();
 }
 
@@ -636,6 +740,14 @@ function drawHUD() {
 
   for (let i = 0; i < lives; i++)
     drawLifeIcon(W - 16 - i * 22, 18);
+
+  // Etiqueta de skin; se resalta un momento al cambiarla.
+  ctx.textAlign = 'left';
+  ctx.font      = skinToast > 0 ? 'bold 13px monospace' : '12px monospace';
+  ctx.fillStyle = `rgba(255,255,255,${skinToast > 0 ? 0.9 : 0.45})`;
+  ctx.fillText(`SKIN: ${SKINS[skinIndex].name.toUpperCase()} · S`, 14, H - 14);
+  ctx.fillStyle = '#fff';
+  ctx.font      = '15px monospace';
 
   if (ship.boost > 0) {
     ctx.textAlign = 'center';

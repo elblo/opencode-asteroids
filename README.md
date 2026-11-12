@@ -4,7 +4,7 @@ Clon del clásico arcade **Asteroids** implementado en canvas HTML5 puro, sin de
 
 ## Descripción
 
-Nave espacial en un campo de asteroides con envolvimiento de bordes (el espacio es toroidal). Destruye asteroides para sumar puntos: los grandes se parten en medianos, los medianos en pequeños. Al destruir un asteroide grande o mediano puede soltar un power-up (velocidad o triple disparo). Cada cierto tiempo aparece una estrella fugaz: rápida, peligroso y con los segundos contados.
+Nave espacial en un campo de asteroides con envolvimiento de bordes (el espacio es toroidal). Destruye asteroides para sumar puntos: los grandes se parten en medianos, los medianos en pequeños. Al destruir un asteroide grande o mediano puede soltar un power-up (velocidad, triple disparo o escudo). Cada cierto tiempo aparece una estrella fugaz: rápida, peligroso y con los segundos contados.
 
 ## Tecnologías
 
@@ -61,10 +61,11 @@ Aparece cada ~12 s, como mucho una activa, y tras 5 s de gracia al empezar cada 
 
 | Power-up | Efecto | Dónde sale |
 | --- | --- | --- |
-| Velocidad | Propulsión y giro al doble durante 5 s | Asteroide grande 30 %, mediano 12,5 % |
-| Triple disparo | Tres balas paralelas por disparo durante 5 s | Asteroide grande 30 %, mediano 12,5 % |
+| Velocidad | Propulsión y giro al doble durante 5 s | Asteroide grande o mediano |
+| Triple disparo | Tres balas paralelas por disparo durante 5 s | Asteroide grande o mediano |
+| Escudo | Aura de 6 s que destruye los asteroides al impactar | Asteroide grande o mediano |
 
-El asteroide grande suelta algún power-up el 60 % de las veces y el mediano el 25 %; cuando cae, el tipo se reparte al 50 % entre ambos.
+Los asteroides grandes sueltan algún power-up el 60 % de las veces y los medianos el 25 %; los pequeños nunca. Cuando cae uno, el tipo se reparte a partes iguales entre los tres. El escudo destruye el asteroide sin sumar puntos ni soltar otro power-up.
 
 Se recogen al chocar con ellos, y el HUD muestra la cuenta atrás mientras el efecto está activo. Muriendo se cancela.
 
@@ -74,5 +75,6 @@ Se recogen al chocar con ellos, y el HUD muestra la cuenta atrás mientras el ef
 - Asteroides se parten en fragmentos más pequeños al ser destruidos
 - Partículas de explosión al destruir asteroides
 - Power-ups que sueltan los asteroides al morir
+- Escudo temporal que destruye los asteroides que impactan en la nave
 - Estrellas fugaces: rápidas, con caducidad y estela
 - Cuatro skins para la nave, con selección con `S` y persistencia local

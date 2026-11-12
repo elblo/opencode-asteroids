@@ -47,7 +47,10 @@ Aparece cada ~12 s, como mucho una activa, y tras 5 s de gracia al empezar cada 
 
 | Power-up | Efecto | Dónde sale |
 | --- | --- | --- |
-| Velocidad | Propulsión y giro al doble durante 5 s | Asteroide grande 60 %, mediano 25 % |
+| Velocidad | Propulsión y giro al doble durante 5 s | Asteroide grande o mediano (50 % de los drops) |
+| Escudo | Aura de 6 s que destruye los asteroides al impactar | Asteroide grande o mediano (50 % de los drops) |
+
+Los asteroides grandes sueltan algo el 60 % de las veces y los medianos el 25 %; los pequeños nunca. El escudo destruye el asteroide sin sumar puntos ni soltar otro power-up.
 
 Se recogen al chocar con ellos, y el HUD muestra la cuenta atrás mientras el efecto está activo. Muriendo se cancela.
 
@@ -57,4 +60,5 @@ Se recogen al chocar con ellos, y el HUD muestra la cuenta atrás mientras el ef
 - Asteroides se parten en fragmentos más pequeños al ser destruidos
 - Partículas de explosión al destruir asteroides
 - Power-ups que sueltan los asteroides al morir
+- Escudo temporal que destruye los asteroides que impactan en la nave
 - Estrellas fugaces: rápidas, con caducidad y estela

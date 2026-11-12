@@ -78,6 +78,13 @@ const POWERUPS = {
     color:     '#7cf7ff',
     dropChance: [0, 0, 0.25, 0.6],
   },
+  escudo: {
+    duration:   6,
+    ttl:       12,
+    radius:    11,
+    color:     '#7dffb2',
+    dropChance: [0, 0, 0.25, 0.6],
+  },
 };
 
 // Estrella fugaz: un subtipo de Asteroid. Va mucho más rápido y caduca, así que
@@ -246,6 +253,8 @@ class Ship {
     this.invincible    = 3;
     this.shootCooldown = 0;
     this.boost         = 0;   // segundos restantes de power-up activo
+    this.shield        = 0;   // segundos restantes de escudo activo
+    this.shieldRadius  = 26;  // radio del aura; también define el alcance al colisionar
     this.dead          = false;
   }
 
@@ -254,6 +263,7 @@ class Ship {
     if (this.invincible    > 0) this.invincible    -= dt;
     if (this.shootCooldown > 0) this.shootCooldown -= dt;
     if (this.boost         > 0) this.boost         -= dt;
+    if (this.shield        > 0) this.shield        -= dt;
 
     // El power-up «velocidad» duplica propulsión y giro. Se escala THRUST en vez
     // de tocar DRAG porque el drag se aplica por frame, no por segundo: escalar
@@ -319,6 +329,27 @@ class Ship {
     }
 
     ctx.restore();
+
+    // Aura del escudo: anillo tenue + arco con el tiempo restante
+    if (this.shield > 0) {
+      const frac = Math.max(0, this.shield / POWERUPS.escudo.duration);
+      ctx.save();
+      ctx.translate(this.x, this.y);
+      ctx.strokeStyle = POWERUPS.escudo.color;
+
+      ctx.globalAlpha = 0.3;
+      ctx.lineWidth   = 1;
+      ctx.beginPath();
+      ctx.arc(0, 0, this.shieldRadius, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.globalAlpha = 0.9;
+      ctx.lineWidth   = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, this.shieldRadius, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * frac);
+      ctx.stroke();
+      ctx.restore();
+    }
   }
 }
 
@@ -391,7 +422,8 @@ class PowerUp {
   }
 
   apply(ship) {
-    ship.boost = POWERUPS[this.type].duration;
+    if (this.type === 'escudo') ship.shield = POWERUPS.escudo.duration;
+    else                        ship.boost = POWERUPS.velocidad.duration;
   }
 
   draw() {
@@ -412,18 +444,31 @@ class PowerUp {
     ctx.arc(0, 0, this.radius + 4, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * frac);
     ctx.stroke();
 
-    // Doble galón: lectura inmediata de «más rápido»
+    // Icono según el tipo: doble galón para velocidad, silueta de escudo para
+    // el escudo. El arco exterior ya comunica el tiempo de vida en el campo.
     ctx.globalAlpha = 1;
     ctx.rotate(this.rot);
     ctx.lineWidth = 1.5;
     ctx.lineJoin  = 'round';
-    for (let i = 0; i < 2; i++) {
-      const o = -5 + i * 7;
+    if (this.type === 'escudo') {
       ctx.beginPath();
-      ctx.moveTo(o, -8);
-      ctx.lineTo(o + 6, 0);
-      ctx.lineTo(o, 8);
+      ctx.moveTo( 0, -10);
+      ctx.lineTo( 8,  -6);
+      ctx.lineTo( 8,   2);
+      ctx.quadraticCurveTo( 8, 8, 0, 12);
+      ctx.quadraticCurveTo(-8, 8, -8, 2);
+      ctx.lineTo(-8,  -6);
+      ctx.closePath();
       ctx.stroke();
+    } else {
+      for (let i = 0; i < 2; i++) {
+        const o = -5 + i * 7;
+        ctx.beginPath();
+        ctx.moveTo(o, -8);
+        ctx.lineTo(o + 6, 0);
+        ctx.lineTo(o, 8);
+        ctx.stroke();
+      }
     }
     ctx.restore();
   }
@@ -571,14 +616,25 @@ function update(dt) {
   asteroids = asteroids.filter(a => !a.dead).concat(newAsteroids);
   bullets   = bullets.filter(b => !b.dead);
 
-  // Nave vs asteroide
+  // Nave vs asteroide. Con escudo, el aura amplía el radio de contacto y
+  // destruye el asteroide sin dar puntos ni soltar power-up. Si algún día se
+  // añaden proyectiles enemigos, su bucle debe repetir la comprobación de
+  // `ship.shield > 0`.
   if (ship.invincible <= 0) {
+    const shielded = ship.shield > 0;
     for (const a of asteroids) {
-      if (dist(ship, a) < ship.radius + a.radius * 0.82) {
+      const reach = (shielded ? ship.shieldRadius : ship.radius) + a.radius * 0.82;
+      if (!a.dead && dist(ship, a) < reach) {
+        if (shielded) {
+          a.dead = true;
+          explode(a.x, a.y, a.size * 5);
+          continue;
+        }
         killShip();
         break;
       }
     }
+    asteroids = asteroids.filter(a => !a.dead);
   }
 
   // Nave vs power-up
@@ -641,6 +697,13 @@ function drawHUD() {
     ctx.textAlign = 'center';
     ctx.fillStyle = POWERUPS.velocidad.color;
     ctx.fillText(`VELOCIDAD x2  ${ship.boost.toFixed(1)}s`, W / 2, 46);
+    ctx.fillStyle = '#fff';
+  }
+
+  if (ship.shield > 0) {
+    ctx.textAlign = 'center';
+    ctx.fillStyle = POWERUPS.escudo.color;
+    ctx.fillText(`ESCUDO  ${ship.shield.toFixed(1)}s`, W / 2, 66);
     ctx.fillStyle = '#fff';
   }
 
